@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 import cors from "cors";
 import joi from "joi";
 import dayjs from "dayjs";
+import { strict as assert } from "assert";
+
+import { stripHtml } from "string-strip-html";
 
 const userSchema = joi.object({
   name: joi.string().min(1).required(),
@@ -36,7 +39,7 @@ const messagesCollection = db.collection("messages");
 //setInterval(rmvInactiveUsers, 15000);
 
 app.post("/participants", async (req, res) => {
-  const user = req.body;
+  let user = req.body;
 
   try {
     const userExists = await usersCollection.findOne({ name: user.name });
@@ -53,6 +56,8 @@ app.post("/participants", async (req, res) => {
       const arrErrors = error.details.map((e) => e.message);
       return res.status(422).send(arrErrors);
     }
+
+    user = stripHtml(user).result;
     const currentTime = Date.now();
     await usersCollection.insertOne({ ...user, lastStatus: currentTime });
 
@@ -81,8 +86,8 @@ app.get("/participants", async (req, res) => {
 });
 
 app.post("/messages", async (req, res) => {
-  const messageBody = req.body;
-  const user = req.headers.user;
+  let messageBody = req.body;
+  let user = req.headers.user;
 
   if (!user) {
     return res.status(422).send({
@@ -107,6 +112,13 @@ app.post("/messages", async (req, res) => {
       const arrErrors = error.details.map((e) => e.message);
       return res.status(422).send(arrErrors);
     }
+
+    user = stripHtml(user).result;
+    messageBody = {
+      to: stripHtml(messageBody.to).result,
+      text: stripHtml(messageBody.text).result,
+      type: stripHtml(messageBody.type).result,
+    };
 
     const currentTime = Date.now();
     const message = {
@@ -174,7 +186,7 @@ app.get("/messages", async (req, res) => {
 });
 
 app.post("/status", async (req, res) => {
-  const user = req.headers.user;
+  let user = req.headers.user;
 
   if (!user) {
     return res.status(422).send({
@@ -191,6 +203,7 @@ app.post("/status", async (req, res) => {
       });
     }
 
+    user = stripHtml(user).result;
     const currentTime = Date.now();
     await usersCollection.updateOne(
       { name: user },
@@ -244,9 +257,9 @@ app.delete("/messages/:id", async (req, res) => {
 });
 
 app.put("/messages/:id", async (req, res) => {
-  const user = req.headers.user;
-  const id = req.params.id;
-  const messageBody = req.body;
+  let user = req.headers.user;
+  let id = req.params.id;
+  let messageBody = req.body;
 
   if (!user) {
     return res.status(422).send({
@@ -285,7 +298,15 @@ app.put("/messages/:id", async (req, res) => {
       const arrErrors = error.details.map((e) => e.message);
       return res.status(422).send(arrErrors);
     }
-    
+
+    user = stripHtml(user).result;
+    id = stripHtml(id).result;
+    messageBody = {
+      to: stripHtml(messageBody.to).result,
+      text: stripHtml(messageBody.text).result,
+      type: stripHtml(messageBody.type).result,
+    };
+
     const currentTime = Date.now();
     const newMessage = {
       ...messageBody,
@@ -299,7 +320,7 @@ app.put("/messages/:id", async (req, res) => {
     );
     res.status(201).send("Mensagem editada com sucesso!");
   } catch (err) {
-    res.status(500).send({err});
+    res.status(500).send({ err });
   }
 });
 
