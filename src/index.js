@@ -1,11 +1,9 @@
-import express, { application } from "express";
+import express from "express";
 import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import cors from "cors";
 import joi from "joi";
 import dayjs from "dayjs";
-import { strict as assert } from "assert";
-
 import { stripHtml } from "string-strip-html";
 
 const userSchema = joi.object({
@@ -36,7 +34,7 @@ db = mongoClient.db("api-batepapo-uol");
 const usersCollection = db.collection("users");
 const messagesCollection = db.collection("messages");
 
-//setInterval(rmvInactiveUsers, 15000);
+setInterval(rmvInactiveUsers, 15000);
 
 app.post("/participants", async (req, res) => {
   let user = req.body;
