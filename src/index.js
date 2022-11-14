@@ -3,7 +3,6 @@ import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import cors from "cors";
 import joi from "joi";
-import bcrypt from "bcrypt";
 import dayjs from "dayjs";
 
 const userSchema = joi.object({
@@ -34,7 +33,7 @@ db = mongoClient.db("api-batepapo-uol");
 const usersCollection = db.collection("users");
 const messagesCollection = db.collection("messages");
 
-// ROTAS:
+setInterval(rmvInactiveUsers, 15000);
 
 app.post("/participants", async (req, res) => {
   const user = req.body;
@@ -205,6 +204,34 @@ app.post("/status", async (req, res) => {
     res.status(500).send(err);
   }
 });
+
+async function rmvInactiveUsers() {
+  try {
+    const downtime = 10000;
+    const currentTime = Date.now();
+    const limitTime = currentTime - downtime;
+
+    const arrInactivUsers = await usersCollection
+      .find({ lastStatus: { $lt: limitTime } })
+      .toArray();
+
+    arrInactivUsers.forEach(async (user) => {
+      const message = {
+        from: user.name,
+        to: "Todos",
+        text: "sai da sala...",
+        type: "status",
+        time: dayjs(currentTime).format("HH:mm:ss"),
+      };
+
+      await usersCollection.deleteOne({ _id: new ObjectId(user._id) });
+      await messagesCollection.insertOne(message);
+    });
+    console.log("Removed inactive users");
+  } catch (err) {
+    console.log("Error on removal inactive users: ", err);
+  }
+}
 
 const port = 5000;
 app.listen(port, () => console.log(`Server running in port: ${port}`));
