@@ -34,7 +34,7 @@ db = mongoClient.db("api-batepapo-uol");
 const usersCollection = db.collection("users");
 const messagesCollection = db.collection("messages");
 
-setInterval(rmvInactiveUsers, 15000);
+//setInterval(rmvInactiveUsers, 15000);
 
 app.post("/participants", async (req, res) => {
   let user = req.body;
@@ -55,7 +55,7 @@ app.post("/participants", async (req, res) => {
       return res.status(422).send(arrErrors);
     }
 
-    user = stripHtml(user).result;
+    user = {name: stripHtml(user.name).result};
     const currentTime = Date.now();
     await usersCollection.insertOne({ ...user, lastStatus: currentTime });
 
@@ -70,7 +70,7 @@ app.post("/participants", async (req, res) => {
     await messagesCollection.insertOne(message);
     res.status(201).send("Usuário cadastrado com sucesso!");
   } catch (err) {
-    res.status(500).send(err);
+    res.status(500).send(err.message);
   }
 });
 
@@ -79,7 +79,7 @@ app.get("/participants", async (req, res) => {
     const participants = await usersCollection.find({}).toArray();
     res.status(200).send(participants);
   } catch (err) {
-    res.status(500).send(err);
+    res.status(500).send(err.message);
   }
 });
 
@@ -128,7 +128,7 @@ app.post("/messages", async (req, res) => {
     await messagesCollection.insertOne(message);
     res.status(201).send("Mensagem enviada com sucesso!");
   } catch (err) {
-    res.status(500).send(err);
+    res.status(500).send(err.message);
   }
 });
 
@@ -179,7 +179,7 @@ app.get("/messages", async (req, res) => {
 
     res.status(200).send(arrMessages);
   } catch (err) {
-    res.status(500).send(err);
+    res.status(500).send(err.message);
   }
 });
 
@@ -211,7 +211,7 @@ app.post("/status", async (req, res) => {
       .status(200)
       .send(`Status do participante ${user} atualizado com sucesso!`);
   } catch (err) {
-    res.status(500).send(err);
+    res.status(500).send(err.message);
   }
 });
 
@@ -250,7 +250,7 @@ app.delete("/messages/:id", async (req, res) => {
     await messagesCollection.deleteOne({ _id: new ObjectId(id) });
     res.status(200).send("Mensagem apagada com sucesso!");
   } catch (err) {
-    res.status(500).send(err);
+    res.status(500).send(err.message);
   }
 });
 
@@ -318,7 +318,8 @@ app.put("/messages/:id", async (req, res) => {
     );
     res.status(201).send("Mensagem editada com sucesso!");
   } catch (err) {
-    res.status(500).send({ err });
+    console.log("Catch", err)
+    res.status(500).send(err.message);
   }
 });
 
@@ -346,7 +347,7 @@ async function rmvInactiveUsers() {
     });
     //    console.log("Removed inactive users");
   } catch (err) {
-    console.log("Error on removal inactive users: ", err);
+    console.log("Error on removal inactive users: ", err.message);
   }
 }
 
