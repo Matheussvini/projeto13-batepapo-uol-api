@@ -87,7 +87,8 @@ app.post("/messages", async (req, res) => {
 
   if (!user) {
     return res.status(422).send({
-      message: 'Por favor envie um header com campo "nome" informando o nome do usuário',
+      message:
+        'Por favor envie um header na requisição com campo "user" informando o nome do usuário',
     });
   }
 
@@ -128,7 +129,8 @@ app.get("/messages", async (req, res) => {
 
   if (!user) {
     return res.status(422).send({
-      message: 'Por favor envie um header com campo "nome" informando o nome do usuário',
+      message:
+        'Por favor envie um header na requisição com campo "user" informando o nome do usuário',
     });
   }
 
@@ -167,6 +169,38 @@ app.get("/messages", async (req, res) => {
       .toArray();
 
     res.status(200).send(arrMessages);
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
+app.post("/status", async (req, res) => {
+  const user = req.headers.user;
+  console.log(req.headers);
+
+  if (!user) {
+    return res.status(422).send({
+      message:
+        'Por favor envie um header na requisição com campo "user" informando o nome do usuário',
+    });
+  }
+
+  try {
+    const userExists = await usersCollection.findOne({ name: user });
+    if (!userExists) {
+      return res.status(404).send({
+        message: "Este usuário não está cadastrado",
+      });
+    }
+
+    const currentTime = Date.now();
+    await usersCollection.updateOne(
+      { name: user },
+      { $set: { lastStatus: currentTime } }
+    );
+    res
+      .status(200)
+      .send(`Status do participante ${user} atualizado com sucesso!`);
   } catch (err) {
     res.status(500).send(err);
   }
