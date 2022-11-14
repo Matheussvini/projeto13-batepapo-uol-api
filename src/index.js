@@ -34,7 +34,7 @@ db = mongoClient.db("api-batepapo-uol");
 const usersCollection = db.collection("users");
 const messagesCollection = db.collection("messages");
 
-//setInterval(rmvInactiveUsers, 15000);
+setInterval(rmvInactiveUsers, 15000);
 
 app.post("/participants", async (req, res) => {
   let user = req.body;
