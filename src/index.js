@@ -216,21 +216,90 @@ app.delete("/messages/:id", async (req, res) => {
   }
 
   try {
-    const idIncludes = await messagesCollection.findOne({ _id: new ObjectId(id) });
+    const userExists = await usersCollection.findOne({ name: user });
+    if (!userExists) {
+      return res.status(422).send({
+        message:
+          "Não existe nenhum usuário com este nome, por favor escolha um usuário que já esteja cadastrado!",
+      });
+    }
+    const idIncludes = await messagesCollection.findOne({
+      _id: new ObjectId(id),
+    });
     if (!idIncludes) {
       return res.status(404).send("Não há nenhuma mensagem com esse id");
     }
-    if (idIncludes.to !== user) {
+    if (idIncludes.from !== user) {
       return res
         .status(401)
         .send(
           `Usuário ${user} não é o mesmo que enviou a mensagem, logo não possui autorização para excluí-la.`
         );
     }
-    await messagesCollection.deleteOne({_id: new ObjectId(id) });
-    res.status(200).send("Mensagem apagada com sucesso!")
+    await messagesCollection.deleteOne({ _id: new ObjectId(id) });
+    res.status(200).send("Mensagem apagada com sucesso!");
   } catch (err) {
     res.status(500).send(err);
+  }
+});
+
+app.put("/messages/:id", async (req, res) => {
+  const user = req.headers.user;
+  const id = req.params.id;
+  const messageBody = req.body;
+
+  if (!user) {
+    return res.status(422).send({
+      message:
+        'Por favor envie um header na requisição com campo "user" informando o nome do usuário',
+    });
+  }
+
+  try {
+    const userExists = await usersCollection.findOne({ name: user });
+    if (!userExists) {
+      return res.status(422).send({
+        message:
+          "Não existe nenhum usuário com este nome, por favor escolha um usuário que já esteja cadastrado!",
+      });
+    }
+
+    const idIncludes = await messagesCollection.findOne({
+      _id: new ObjectId(id),
+    });
+    if (!idIncludes) {
+      return res.status(404).send("Não há nenhuma mensagem com esse id");
+    }
+    if (idIncludes.from !== user) {
+      return res
+        .status(401)
+        .send(
+          `Usuário ${user} não é o mesmo que enviou a mensagem, logo não possui autorização para edita-la.`
+        );
+    }
+
+    const { error } = messageSchema.validate(messageBody, {
+      abortEarly: false,
+    });
+    if (error) {
+      const arrErrors = error.details.map((e) => e.message);
+      return res.status(422).send(arrErrors);
+    }
+    
+    const currentTime = Date.now();
+    const newMessage = {
+      ...messageBody,
+      from: user,
+      time: dayjs(currentTime).format("HH:mm:ss"),
+    };
+
+    await messagesCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: newMessage }
+    );
+    res.status(201).send("Mensagem editada com sucesso!");
+  } catch (err) {
+    res.status(500).send({err});
   }
 });
 
