@@ -33,7 +33,7 @@ db = mongoClient.db("api-batepapo-uol");
 const usersCollection = db.collection("users");
 const messagesCollection = db.collection("messages");
 
-setInterval(rmvInactiveUsers, 15000);
+//setInterval(rmvInactiveUsers, 15000);
 
 app.post("/participants", async (req, res) => {
   const user = req.body;
@@ -175,7 +175,6 @@ app.get("/messages", async (req, res) => {
 
 app.post("/status", async (req, res) => {
   const user = req.headers.user;
-  console.log(req.headers);
 
   if (!user) {
     return res.status(422).send({
@@ -205,6 +204,36 @@ app.post("/status", async (req, res) => {
   }
 });
 
+app.delete("/messages/:id", async (req, res) => {
+  const user = req.headers.user;
+  const id = req.params.id;
+
+  if (!user) {
+    return res.status(422).send({
+      message:
+        'Por favor envie um header na requisição com campo "user" informando o nome do usuário',
+    });
+  }
+
+  try {
+    const idIncludes = await messagesCollection.findOne({ _id: new ObjectId(id) });
+    if (!idIncludes) {
+      return res.status(404).send("Não há nenhuma mensagem com esse id");
+    }
+    if (idIncludes.to !== user) {
+      return res
+        .status(401)
+        .send(
+          `Usuário ${user} não é o mesmo que enviou a mensagem, logo não possui autorização para excluí-la.`
+        );
+    }
+    await messagesCollection.deleteOne({_id: new ObjectId(id) });
+    res.status(200).send("Mensagem apagada com sucesso!")
+  } catch (err) {
+    res.status(500).send(err);
+  }
+});
+
 async function rmvInactiveUsers() {
   try {
     const downtime = 10000;
@@ -227,7 +256,7 @@ async function rmvInactiveUsers() {
       await usersCollection.deleteOne({ _id: new ObjectId(user._id) });
       await messagesCollection.insertOne(message);
     });
-    console.log("Removed inactive users");
+    //    console.log("Removed inactive users");
   } catch (err) {
     console.log("Error on removal inactive users: ", err);
   }
